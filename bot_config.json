@@ -1,0 +1,22 @@
+{
+    "BTC/USDT": {
+        "vol": 2.0,
+        "ts": 0.015,
+        "profit": 0.015
+    },
+    "ETH/USDT": {
+        "vol": 3.5,
+        "ts": 0.015,
+        "profit": 0.015
+    },
+    "SOL/USDT": {
+        "vol": 3.5,
+        "ts": 0.015,
+        "profit": 0.01
+    },
+    "XRP/USDT": {
+        "vol": 3.6,
+        "ts": 0.005,
+        "profit": 0.005
+    }
+}
