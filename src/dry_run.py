@@ -55,7 +55,7 @@ def run_simulation_mode(symbol):
             if not in_position:
                 # 매수 조건 확인
                 if (price > curr['ema9_1h']) and (curr['rsi'] < 70) and (vol_ratio > setting['vol']) and (price > prev['close']):
-                    send_discord_notification(f"🚀 **[매수 완료]** {symbol}\n💰 가격: {price} USDT\n📈 전략: {vol_mult}배 거래량 돌파")
+                    send_discord_notification(f"🚀 **[매수 완료]** {symbol}\n💰 가격: {price} USDT\n📈 전략: {setting['vol']}배 거래량 돌파")
                     print(f"\n🔔🔔 [매수 신호 발생!] 가격: {price} 🔔🔔\n")
                     entry_price = price
                     highest_price = price
@@ -70,8 +70,8 @@ def run_simulation_mode(symbol):
 
                 if is_trailing_stop or (is_ema_broken and current_profit > setting['profit']):
                     reason = "트레일링스탑" if is_trailing_stop else "EMA하향돌파"
-                    color_emoji = "🟢" if profit > 0 else "🔴"
-                    send_discord_notification(f"{color_emoji} **[매도 완료]** {symbol}\n💵 수익률: {profit:.2d}%\n🏦 현재 잔고: {balance} USDT")
+                    color_emoji = "🟢" if current_profit * 100 > 0 else "🔴"
+                    send_discord_notification(f"{color_emoji} **[매도 완료]** {symbol}\n💵 수익률: {current_profit * 100:.2d}%\n")
                     print(f"\n💰💰 [매도 신호 발생!] 사유: {reason}, 수익률: {current_profit*100:.2f}% 💰💰\n")
                     in_position = False
             
