@@ -1,4 +1,4 @@
-config.json
+bot_config.json
 *.key
 __pycache__/
 .env
