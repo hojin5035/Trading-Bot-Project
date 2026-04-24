@@ -59,6 +59,9 @@ final_config = {}
 for file in target_files:
     print(f"🔎 {file} 최적화 중...")
     df_test = pd.read_csv(file)
+
+    symbol = file.replace('data/', '').replace('_30d.csv', '').replace('_', '/')
+
     best_cash = 0
     best_params = {}
 
@@ -71,11 +74,24 @@ for file in target_files:
                     best_cash = final_cash
                     best_params = {"vol": v, "ts": t, "profit": p}
     
-    symbol = file.replace('_30d.csv', '').replace('_', '/')
     final_config[symbol] = best_params
     print(f"✅ {symbol} 완료: {best_cash:.2f} USDT")
 
 # JSON 파일로 내보내기
+try:
+    # 1. 기존 설정(디스코드 주소 등)을 먼저 읽어옵니다.
+    with open('bot_config.json', 'r') as f:
+        existing_config = json.load(f)
+except FileNotFoundError:
+    # 파일이 없으면 빈 딕셔너리로 시작
+    existing_config = {}
+
+# 2. 기존 데이터에 이번에 최적화한 final_config 내용을 합칩니다.
+# update()를 쓰면 기존 discord_webhook_url은 유지되고 파라미터만 바뀝니다.
+existing_config.update(final_config)
+
+# 3. 합쳐진 데이터를 다시 저장합니다.
 with open('bot_config.json', 'w') as f:
-    json.dump(final_config, f, indent=4)
-print("\n✨ 'bot_config.json' 생성 완료!")
+    json.dump(existing_config, f, indent=4)
+
+print("\n✨ 'bot_config.json' 업데이트 완료! (디스코드 설정 보존)")
