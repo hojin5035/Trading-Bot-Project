@@ -50,7 +50,10 @@ def run_backtest(df, vol_mult, ts_percent, profit_limit):
     return cash if cash > 0 else (stock * df.iloc[-1]['close'])
 
 # 최적화 타겟 설정
-target_files = ['BTC_USDT_30d.csv', 'ETH_USDT_30d.csv', 'SOL_USDT_30d.csv', 'XRP_USDT_30d.csv']
+raw_files = ['BTC_USDT_30d.csv', 'ETH_USDT_30d.csv', 'SOL_USDT_30d.csv', 'XRP_USDT_30d.csv']
+
+# 앞에 'data/'를 싹 다 붙여버리기
+target_files = [f"data/{f}" for f in raw_files]
 final_config = {}
 
 for file in target_files:

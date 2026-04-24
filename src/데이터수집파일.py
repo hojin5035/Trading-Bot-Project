@@ -44,6 +44,6 @@ symbols = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT']
 
 for sym in symbols:
     df = fetch_historical_data(sym, '15m', 30)
-    filename = f"{sym.replace('/', '_')}_30d.csv"
+    filename = f"data/{sym.replace('/', '_')}_30d.csv"
     df.to_csv(filename, index=False)
     print(f"✅ {sym} 저장 완료!")
