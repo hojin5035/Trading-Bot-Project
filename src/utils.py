@@ -2,7 +2,7 @@ import requests
 import json
 
 def send_discord_notification(message):
-    with open('bot_config.json', 'r') as f:
+    with open('secrets.json', 'r') as f:
         config = json.load(f)
     url = config.get('discord_webhook_url')
     if url:
