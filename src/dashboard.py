@@ -2,78 +2,82 @@ import streamlit as st
 import pandas as pd
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import plotly.express as px
 
-# 1. 페이지 설정 (가장 먼저 실행되어야 함)
+# 1. 페이지 설정
 st.set_page_config(page_title="Hojin's Quant Terminal", layout="wide")
 
-# dashboard.py 상단 CSS 부분 수정
+# CSS 수정: 버튼을 가리지 않도록 상단 여백을 충분히 확보
 st.markdown("""
     <style>
-    /* 1. 스트림릿 기본 헤더 제거 (잘림 현상 근본 해결) */
-    header[data-testid="stHeader"] {
-        visibility: hidden;
-        height: 0%;
-    }
-    
-    /* 2. 상단 여백 최소화 */
-    .block-container {
-        padding-top: 0rem !important;
-        padding-bottom: 0rem !important;
-        max-width: 95%; /* 화면을 더 넓게 쓰려면 조절 */
+    /* 1. 사이드바 아이콘 가시성 확보 */
+    button[data-testid="stSidebarCollapseIcon"] {
+        background-color: #238636 !important; 
+        color: white !important;
+        z-index: 999999 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
     }
 
-    /* 3. 인디케이터 바 디자인 (상단 고정 느낌) */
+    /* 2. 본문 레이아웃 및 날개(여백) */
+    .block-container {
+        padding-top: 4rem !important; 
+        max-width: 1100px !important;
+        margin: auto;
+    }
+
+    /* 3. 시스템 인디케이터 디자인 */
     .custom-indicator {
         background-color: #161b22;
         padding: 12px 20px;
-        border-radius: 0px 0px 8px 8px; /* 위쪽은 붙이고 아래만 둥글게 */
+        border-radius: 8px;
         border-left: 5px solid #238636;
-        margin-bottom: 20px;
-        box-shadow: 0px 2px 5px rgba(0,0,0,0.2);
+        margin-bottom: 25px;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.4);
     }
-    
-    html, body, [class*="css"] { font-size: 14px; }
-    [data-testid="stMetricValue"] { font-size: 1.6rem !important; font-weight: 700; }
     </style>
     """, unsafe_allow_html=True)
 
+# --- [시간 및 데이터 로드] ---
 update_time = datetime.now().strftime('%H:%M:%S')
 
-# 인디케이터 출력부 (클래스 추가)
 st.markdown(f"""
     <div class="custom-indicator">
-        <span style="color: white; font-size: 15px;">📡 <b>시스템 가동 중</b> | 마지막 스캔: {update_time} | 모드: 통합 드라이런</span>
+        <span style="color: white; font-size: 15px;">📡 <b>Quant Strategy Terminal</b> | 업데이트: {update_time} | 모드: Dry-Run</span>
     </div>
     """, unsafe_allow_html=True)
 
-# --- [데이터 로드 함수] ---
+
 def get_data():
     try:
         with open('data/status.json', 'r') as f: status = json.load(f)
         with open('data/metadata.json', 'r') as f: meta = json.load(f)
         with open('bot_config.json', 'r') as f: config = json.load(f)
-        if os.path.exists('data/trade_log.csv'):
-            trade_log = pd.read_csv('data/trade_log.csv')
-        else:
-            trade_log = pd.DataFrame()
+        trade_log = pd.read_csv('data/trade_log.csv') if os.path.exists('data/trade_log.csv') else pd.DataFrame()
     except: return {}, {}, {}, pd.DataFrame()
     return status, meta, config, trade_log
 
 status, meta, config, trade_log = get_data()
 
-# --- [2. 핵심 지표 섹션 (수익률 옆에 가동 시간 배치)] ---
+# --- [핵심 지표 섹션] ---
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    # 가동 기간 계산 로직 수정
     if meta and 'start_time' in meta:
         start_dt = datetime.strptime(meta['start_time'], '%Y-%m-%d %H:%M:%S')
         diff = datetime.now() - start_dt
-        days = diff.days
-        hours = diff.seconds // 3600
-        st.metric("🕒 총 가동 시간", f"{days}일 {hours}시간")
+        
+        # 정밀 시간 계산 (초 단위까지 고려)
+        total_seconds = int(diff.total_seconds())
+        days = total_seconds // 86400
+        hours = (total_seconds % 86400) // 3600
+        minutes = (total_seconds % 3600) // 60
+        
+        if days > 0:
+            st.metric("🕒 총 가동 시간", f"{days}일 {hours}시간")
+        else:
+            st.metric("🕒 총 가동 시간", f"{hours}시간 {minutes}분")
     else:
         st.metric("🕒 총 가동 시간", "기록 없음")
 

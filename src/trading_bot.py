@@ -74,12 +74,11 @@ def load_config():
     except: return {}
 
 if __name__ == "__main__":
-    # 시작 시 메타데이터 및 로그 파일 초기화 체크
     os.makedirs('data', exist_ok=True)
-    if not os.path.exists('data/metadata.json'): 
-        save_data('metadata.json', {"start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+    # 실행 시마다 시작 시간을 현재로 강제 갱신
+    save_data('metadata.json', {"start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
     
-    print(f"🚀 [Mangnani_Jipsajang] 퀀트 시스템 가동...")
+    print(f"🚀 퀀트 매매 시스템 가동 및 가동 시간 리셋 완료")
     
     while True:
         try:
@@ -87,9 +86,10 @@ if __name__ == "__main__":
             current_time = datetime.now().strftime('%H:%M:%S')
             
             for i, sym in enumerate(symbols):
+                # 닉네임 없이 깔끔한 진행 로그
                 print(f"[{i+1}/{len(symbols)}] {current_time} | 🔍 {sym} 분석 중...          ", end='\r')
                 monitor_symbol(sym, config)
-                time.sleep(1.5) # API 호출 안정성을 위해 조금 더 여유를 줌
+                time.sleep(1.5)
             
             print(f"\n✅ {current_time} 스캔 완료! (30초 대기) " + "-"*20)
             time.sleep(30)
