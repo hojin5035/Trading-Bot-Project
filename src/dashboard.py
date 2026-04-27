@@ -3,174 +3,85 @@ import pandas as pd
 import json
 import os
 from datetime import datetime
-import plotly.graph_objects as go
 import plotly.express as px
 
-# 1. 페이지 설정
-st.set_page_config(layout="wide")
+# --- [설정 및 스타일] ---
+st.set_page_config(page_title="Hojin's Quant Terminal", layout="wide")
+st.markdown("""<style>
+    html, body, [class*="css"] { font-size: 14px; }
+    h1 { font-size: 1.8rem !important; }
+    [data-testid="stMetricValue"] { font-size: 1.5rem !important; }
+</style>""", unsafe_allow_html=True)
 
-# 2. 전용 CSS 주입 (글씨 크기 및 간격 조절)
-st.markdown(
-    """
-    <style>
-    /* 전체 기본 폰트 크기 조절 */
-    html, body, [class*="css"] {
-        font-size: 14px; /* 대화창과 비슷한 적당한 크기 */
-    }
-    
-    /* 제목(Title) 크기 줄이기 */
-    h1 {
-        font-size: 1.8rem !important;
-        font-weight: 700;
-    }
-    
-    /* 부제목(Subheader) 크기 줄이기 */
-    h2, h3 {
-        font-size: 1.2rem !important;
-        margin-top: 1rem !important;
-    }
-    
-    /* 사이드바 글씨 크기 */
-    .sidebar .sidebar-content {
-        font-size: 13px;
-    }
-
-    /* 표(Dataframe) 글씨 크기 */
-    .stDataFrame, .stTable {
-        font-size: 12px;
-    }
-
-    /* 메트릭(Metric) 라벨 크기 조절 */
-    [data-testid="stMetricLabel"] {
-        font-size: 0.9rem !important;
-    }
-    
-    /* 메트릭 숫자 크기 조절 */
-    [data-testid="stMetricValue"] {
-        font-size: 1.5rem !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# --- [데이터 로드 함수들] ---
-def load_metadata():
+# --- [데이터 로드] ---
+def get_data():
     try:
-        with open('data/metadata.json', 'r') as f:
-            return json.load(f)
-    except: return None
-
-def load_status():
-    try:
-        with open('data/status.json', 'r') as f:
-            return json.load(f)
-    except: return {}
-
-def load_trade_log():
-    try:
+        with open('data/status.json', 'r') as f: status = json.load(f)
+        with open('data/metadata.json', 'r') as f: meta = json.load(f)
+        with open('bot_config.json', 'r') as f: config = json.load(f)
         df = pd.read_csv('data/trade_log.csv')
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
-        return df
-    except: return pd.DataFrame()
+    except: return {}, {}, {}, pd.DataFrame()
+    return status, meta, config, df
 
-def load_bot_config():
-    try:
-        with open('bot_config.json', 'r') as f:
-            return json.load(f)
-    except: return {}
+status, meta, config, trade_log = get_data()
 
-# --- [사이드바: 자산 설정 및 전략 확인] ---
-st.sidebar.header("💰 자산 설정")
-virtual_seed = st.sidebar.number_input("가상 시드 입력 (USDT)", value=1000000)
+# --- [사이드바: 자산 & 실시간 시세] ---
+with st.sidebar:
+    st.header("💰 자산 설정")
+    seed = st.number_input("가상 시드 (USDT)", value=1000000)
+    st.divider()
+    
+    st.subheader("📊 실시간 시세")
+    for sym, s in status.items():
+        st.write(f"{sym.split('/')[0]}: **{s.get('current_price', 0):,.4f}**")
+    
+    st.divider()
+    st.subheader("🍕 현재 비중")
+    if status:
+        in_pos = [sym for sym, s in status.items() if s['in_position']]
+        weights = [100 - len(in_pos)*25] + [25]*len(in_pos)
+        labels = ['Cash'] + in_pos
+        fig_pie = px.pie(values=weights, names=labels, hole=0.5)
+        fig_pie.update_traces(textinfo='percent', textfont_size=12)
+        fig_pie.update_layout(showlegend=False, margin=dict(t=0,b=0,l=0,r=0), height=200)
+        st.plotly_chart(fig_pie, use_container_width=True)
 
-st.sidebar.divider()
-st.sidebar.header("⚙️ 현재 적용 전략 (JSON)")
-config_data = load_bot_config()
+# --- [메인 상단: 시스템 인디케이터] ---
+update_time = datetime.now().strftime('%H:%M:%S')
+st.markdown(f"""<div style="background-color: #161b22; padding: 10px; border-radius: 5px; border-left: 5px solid #238636;">
+    <span style="color: white;">📡 <b>시스템 가동 중</b> | 업데이트: {update_time} | 모드: Dry-Run</span>
+</div>""", unsafe_allow_html=True)
 
-if config_data:
-    for sym, cfg in config_data.items():
-        if isinstance(cfg, dict):
-            st.sidebar.subheader(f"📍 {sym} 전략")
-            
-            # 수치를 한글로 풀어서 설명
-            vol_desc = f"📊 거래량 돌파: {cfg.get('vol')}배"
-            ts_desc = f"🛡️ 익절 보존(TS): {cfg.get('ts')*100:.1f}%"
-            profit_desc = f"🎯 최소 익절 기준: {cfg.get('profit')*100:.1f}%"
-            
-            st.sidebar.write(vol_desc)
-            st.sidebar.write(ts_desc)
-            st.sidebar.write(profit_desc)
-            st.sidebar.divider()
-
-# --- [메인 레이아웃] ---
-st.title("📈 실시간 트레이딩 분석 대시보드")
-
-# 1. 상단 지표 (Metric)
-metadata = load_metadata()
-trade_log = load_trade_log()
-status = load_status()
-
+# --- [메인 지표 요약] ---
 col1, col2, col3 = st.columns(3)
-
 with col1:
-    if metadata:
-        start_time = datetime.strptime(metadata['start_time'], '%Y-%m-%d %H:%M:%S')
-        duration = datetime.now() - start_time
-        days = duration.days
-        hours = duration.seconds // 3600
-        st.metric("운영 기간", f"{days}일 {hours}시간", delta=f"{days+1}일차")
-    else:
-        st.metric("운영 기간", "기록 없음")
-
+    if meta:
+        days = (datetime.now() - datetime.strptime(meta['start_time'], '%Y-%m-%d %H:%M:%S')).days
+        st.metric("가동 기간", f"{days+1}일차")
 with col2:
-    total_profit_rate = trade_log[trade_log['type'] == 'SELL']['profit_rate'].sum() if not trade_log.empty else 0.0
-    st.metric("누적 수익률", f"{total_profit_rate:.2f}%", delta=f"{total_profit_rate:.2f}%")
-
+    profit = trade_log[trade_log['type'] == 'SELL']['profit_rate'].sum() if not trade_log.empty else 0
+    st.metric("누적 수익률", f"{profit:.2f}%")
 with col3:
-    current_asset = virtual_seed * (1 + total_profit_rate / 100)
-    st.metric("현재 총 자산", f"{current_asset:,.0f} USDT")
+    st.metric("예상 자산", f"{seed * (1 + profit/100):,.0f} USDT")
 
-st.divider()
+# --- [탭 구성] ---
+tab1, tab2, tab3 = st.tabs(["📈 수익률 분석", "⚙️ 전략 설정", "📰 마켓 뉴스"])
 
-# 2. 중간 섹션: 파이차트 & 수익률 차트
-left_col, right_col = st.columns([1, 2])
-
-with left_col:
-    st.subheader("🍕 자산 배분 (현금 vs 코인)")
-    # 파이차트 데이터 생성
-    in_pos_coins = [sym for sym, state in status.items() if state['in_position']]
-    cash_weight = 100 - (len(in_pos_coins) * 25) # 4개 코인 기준, 각각 25%씩 할당 가정
-    
-    labels = ['Cash'] + in_pos_coins
-    values = [cash_weight] + [25] * len(in_pos_coins)
-    
-    # 파이차트 생성 부분 수정
-    fig_pie = px.pie(values=values, names=labels, hole=0.4, 
-                 color_discrete_sequence=px.colors.sequential.RdBu)
-
-    # 차트 안의 글씨 크기만 명시적으로 키우기
-    fig_pie.update_traces(textinfo='percent+label', textfont_size=14) 
-    fig_pie.update_layout(legend=dict(font=dict(size=13))) # 범례 글씨
-
-    st.plotly_chart(fig_pie, use_container_width=True)
-
-with right_col:
-    st.subheader("📊 날짜별 수익률 추이")
-    if not trade_log.empty and 'SELL' in trade_log['type'].values:
-        sell_logs = trade_log[trade_log['type'] == 'SELL'].copy()
-        # 마우스 오버 시 정보를 위한 차트
-        fig_bar = px.bar(sell_logs, x='timestamp', y='profit_rate', 
-                         color='profit_rate', color_continuous_scale='RdYlGn',
-                         hover_data=['symbol', 'reason', 'price'])
+with tab1:
+    if not trade_log.empty:
+        fig_bar = px.bar(trade_log[trade_log['type']=='SELL'], x='timestamp', y='profit_rate', color='profit_rate', 
+                         hover_data=['symbol', 'reason'], color_continuous_scale='RdYlGn')
         st.plotly_chart(fig_bar, use_container_width=True)
-    else:
-        st.info("아직 매도 기록이 없습니다. 봇이 첫 수익을 낼 때까지 기다려주세요!")
+        st.dataframe(trade_log.sort_values('timestamp', ascending=False), use_container_width=True)
+    else: st.info("매매 기록을 기다리는 중입니다...")
 
-# 3. 하단 섹션: 전체 매매 로그 표
-st.divider()
-st.subheader("📜 상세 매매 히스토리")
-if not trade_log.empty:
-    st.dataframe(trade_log.sort_values(by='timestamp', ascending=False), use_container_width=True)
-else:
-    st.write("기록된 매매 데이터가 없습니다.")
+with tab2:
+    st.subheader("현재 적용 중인 전략 파라미터")
+    for sym, cfg in config.items():
+        if isinstance(cfg, dict):
+            st.write(f"**{sym}**")
+            st.code(f"돌파: {cfg['vol']}배 / TS: {cfg['ts']*100}% / 익절기준: {cfg['profit']*100}%")
+
+with tab3:
+    st.subheader("실시간 마켓 뉴스")
+    st.write("준비 중인 기능입니다.")
