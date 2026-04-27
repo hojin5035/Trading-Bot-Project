@@ -92,33 +92,41 @@ with st.sidebar:
         p = status.get(sym, {}).get('current_price', 0)
         st.write(f"{sym}: **{p:,.2f}**")
 
-    # --- [사이드바 하단 파이 차트 추가] ---
+    # dashboard.py 사이드바 내부 수정 제안
     st.divider()
-    st.subheader("📊 Allocation")
+    st.subheader("📊 Portfolio Weight")
     
-    # 투자 비중 데이터 준비 (전략에 포함된 코인들 기준)
-    allocation_data = []
-    active_symbols = list(config.keys())
-    
+    # 1. 데이터 준비 (백분율 계산)
+    active_symbols = [s.split('/')[0] for s in config.keys()]
     if active_symbols:
-        for sym in active_symbols:
-            allocation_data.append({"Symbol": sym.split('/')[0], "Value": 1}) # 균등 배분 가정
+        # 현재는 균등 배분(1/N) 가정, 나중에 실제 잔고로 대체 가능
+        df_bar = pd.DataFrame([{"Symbol": s, "Weight": 100/len(active_symbols)} for s in active_symbols])
         
-        df_pie = pd.DataFrame(allocation_data)
-        fig_sidebar_pie = px.pie(df_pie, values='Value', names='Symbol',
-                                 hole=0.3, # 도넛 스타일
-                                 color_discrete_sequence=px.colors.sequential.Greens_r)
-        
-        # 사이드바 크기에 맞게 여백 및 높이 조절
-        fig_sidebar_pie.update_layout(
-            margin=dict(t=10, b=10, l=10, r=10),
-            height=250,
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+        # 2. 수평 누적 막대 그래프 생성 (토스 스타일)
+        fig_bar = px.bar(df_bar, x='Weight', y=[ "" ]*len(df_bar), # y축 라벨 제거
+                         color='Symbol', orientation='h',
+                         # 구분이 확실한 컬러셋 (Set3, Pastel 등)
+                         color_discrete_sequence=px.colors.qualitative.Pastel,
+                         text='Symbol') # 막대 안에 이름 표시
+
+        fig_bar.update_layout(
+            barmode='stack',
+            height=80, # 높이를 확 줄여서 한 줄로 만듦
+            margin=dict(t=0, b=0, l=0, r=0),
+            showlegend=False, # 막대 안에 글자가 있으니 범례는 생략 가능
+            xaxis=dict(visible=False), # 축 제거로 깔끔하게
+            yaxis=dict(visible=False),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
         )
-        st.plotly_chart(fig_sidebar_pie, use_container_width=True)
+        
+        # 막대 안에 백분율 표시 설정
+        fig_bar.update_traces(texttemplate='%{text} %{x:.0f}%', textposition='inside')
+        
+        st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
     else:
-        st.caption("설정된 전략 심볼이 없습니다.")
+        st.caption("설정된 전략이 없습니다.")
+
 # --- [4. 메인 화면: 신호등 인디케이터] ---
 st.markdown(f"""
     <div class="status-card">
