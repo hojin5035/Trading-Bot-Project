@@ -7,7 +7,52 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 # 1. 페이지 설정
-st.set_page_config(page_title="Crypto Trading Dashboard", layout="wide")
+st.set_page_config(layout="wide")
+
+# 2. 전용 CSS 주입 (글씨 크기 및 간격 조절)
+st.markdown(
+    """
+    <style>
+    /* 전체 기본 폰트 크기 조절 */
+    html, body, [class*="css"] {
+        font-size: 14px; /* 대화창과 비슷한 적당한 크기 */
+    }
+    
+    /* 제목(Title) 크기 줄이기 */
+    h1 {
+        font-size: 1.8rem !important;
+        font-weight: 700;
+    }
+    
+    /* 부제목(Subheader) 크기 줄이기 */
+    h2, h3 {
+        font-size: 1.2rem !important;
+        margin-top: 1rem !important;
+    }
+    
+    /* 사이드바 글씨 크기 */
+    .sidebar .sidebar-content {
+        font-size: 13px;
+    }
+
+    /* 표(Dataframe) 글씨 크기 */
+    .stDataFrame, .stTable {
+        font-size: 12px;
+    }
+
+    /* 메트릭(Metric) 라벨 크기 조절 */
+    [data-testid="stMetricLabel"] {
+        font-size: 0.9rem !important;
+    }
+    
+    /* 메트릭 숫자 크기 조절 */
+    [data-testid="stMetricValue"] {
+        font-size: 1.5rem !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- [데이터 로드 함수들] ---
 def load_metadata():
@@ -42,9 +87,21 @@ virtual_seed = st.sidebar.number_input("가상 시드 입력 (USDT)", value=1000
 st.sidebar.divider()
 st.sidebar.header("⚙️ 현재 적용 전략 (JSON)")
 config_data = load_bot_config()
-for sym, cfg in config_data.items():
-    st.sidebar.write(f"**{sym}**")
-    st.sidebar.code(f"Vol: {cfg['vol']} / TS: {cfg['ts']}")
+
+if config_data:
+    for sym, cfg in config_data.items():
+        if isinstance(cfg, dict):
+            st.sidebar.subheader(f"📍 {sym} 전략")
+            
+            # 수치를 한글로 풀어서 설명
+            vol_desc = f"📊 거래량 돌파: {cfg.get('vol')}배"
+            ts_desc = f"🛡️ 익절 보존(TS): {cfg.get('ts')*100:.1f}%"
+            profit_desc = f"🎯 최소 익절 기준: {cfg.get('profit')*100:.1f}%"
+            
+            st.sidebar.write(vol_desc)
+            st.sidebar.write(ts_desc)
+            st.sidebar.write(profit_desc)
+            st.sidebar.divider()
 
 # --- [메인 레이아웃] ---
 st.title("📈 실시간 트레이딩 분석 대시보드")
@@ -88,8 +145,14 @@ with left_col:
     labels = ['Cash'] + in_pos_coins
     values = [cash_weight] + [25] * len(in_pos_coins)
     
+    # 파이차트 생성 부분 수정
     fig_pie = px.pie(values=values, names=labels, hole=0.4, 
-                     color_discrete_sequence=px.colors.sequential.RdBu)
+                 color_discrete_sequence=px.colors.sequential.RdBu)
+
+    # 차트 안의 글씨 크기만 명시적으로 키우기
+    fig_pie.update_traces(textinfo='percent+label', textfont_size=14) 
+    fig_pie.update_layout(legend=dict(font=dict(size=13))) # 범례 글씨
+
     st.plotly_chart(fig_pie, use_container_width=True)
 
 with right_col:
