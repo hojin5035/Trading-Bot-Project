@@ -56,15 +56,37 @@ def monitor_symbol(symbol, config):
     
     save_data('status.json', coin_states)
 
+def load_config():
+    """전략 설정 파일(bot_config.json) 로드"""
+    try:
+        with open('bot_config.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # 파일이 없으면 기본값 반환 (에러 방지)
+        print("⚠️ bot_config.json 파일을 찾을 수 없어 기본값을 사용합니다.")
+        return {}
+    except Exception as e:
+        print(f"❌ 설정 파일 로드 중 에러: {e}")
+        return {}
+
 if __name__ == "__main__":
     if not os.path.exists('data/metadata.json'): save_data('metadata.json', {"start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
     while True:
         try:
-            with open('bot_config.json', 'r') as f: config = json.load(f)
-            for sym in symbols:
+            config = load_config()
+            # 현재 시간을 가져와서 로그에 사용
+            current_time = datetime.now().strftime('%H:%M:%S')
+            
+            for i, sym in enumerate(symbols):
+                # [진행도/현재시간] 코인명 분석 중... (한 줄에서 계속 바뀜)
+                print(f"[{i+1}/{len(symbols)}] {current_time} | 🔍 {sym} 분석 중...          ", end='\r')
                 monitor_symbol(sym, config)
                 time.sleep(1)
-            print(f"✅ 스캔 완료 ({datetime.now().strftime('%H:%M:%S')})", end='\r')
+            
+            # 한 바퀴 다 돌면 깔끔하게 완료 표시 후 대기
+            print(f"\n✅ {current_time} 스캔 완료! (30초 대기 중...) " + "-"*20)
             time.sleep(30)
+            
         except Exception as e:
-            print(f"❌ 에러: {e}"); time.sleep(10)
+            print(f"\n❌ [{datetime.now().strftime('%H:%M:%S')}] 루프 에러 발생: {e}")
+            time.sleep(10)
