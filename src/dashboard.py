@@ -8,17 +8,44 @@ import plotly.express as px
 # 1. 페이지 설정 (가장 먼저 실행되어야 함)
 st.set_page_config(page_title="Hojin's Quant Terminal", layout="wide")
 
-# 2. CSS 주입: 최상단 여백 제거 및 폰트 조절
+# dashboard.py 상단 CSS 부분 수정
 st.markdown("""
     <style>
-    /* 상단 기본 여백 제거 */
-    .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 0rem !important;
+    /* 1. 스트림릿 기본 헤더 제거 (잘림 현상 근본 해결) */
+    header[data-testid="stHeader"] {
+        visibility: hidden;
+        height: 0%;
     }
+    
+    /* 2. 상단 여백 최소화 */
+    .block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+        max-width: 95%; /* 화면을 더 넓게 쓰려면 조절 */
+    }
+
+    /* 3. 인디케이터 바 디자인 (상단 고정 느낌) */
+    .custom-indicator {
+        background-color: #161b22;
+        padding: 12px 20px;
+        border-radius: 0px 0px 8px 8px; /* 위쪽은 붙이고 아래만 둥글게 */
+        border-left: 5px solid #238636;
+        margin-bottom: 20px;
+        box-shadow: 0px 2px 5px rgba(0,0,0,0.2);
+    }
+    
     html, body, [class*="css"] { font-size: 14px; }
     [data-testid="stMetricValue"] { font-size: 1.6rem !important; font-weight: 700; }
     </style>
+    """, unsafe_allow_html=True)
+
+update_time = datetime.now().strftime('%H:%M:%S')
+
+# 인디케이터 출력부 (클래스 추가)
+st.markdown(f"""
+    <div class="custom-indicator">
+        <span style="color: white; font-size: 15px;">📡 <b>시스템 가동 중</b> | 마지막 스캔: {update_time} | 모드: 통합 드라이런</span>
+    </div>
     """, unsafe_allow_html=True)
 
 # --- [데이터 로드 함수] ---
@@ -35,14 +62,6 @@ def get_data():
     return status, meta, config, trade_log
 
 status, meta, config, trade_log = get_data()
-
-# --- [1. 최상단: 시스템 인디케이터 (게임 공지 스타일)] ---
-update_time = datetime.now().strftime('%H:%M:%S')
-st.markdown(f"""
-    <div style="background-color: #161b22; padding: 12px; border-radius: 8px; border-left: 5px solid #238636; margin-bottom: 25px;">
-        <span style="color: white; font-size: 15px;">📡 <b>시스템 가동 중</b> | 마지막 스캔: {update_time} | 모드: 통합 드라이런</span>
-    </div>
-    """, unsafe_allow_html=True)
 
 # --- [2. 핵심 지표 섹션 (수익률 옆에 가동 시간 배치)] ---
 col1, col2, col3 = st.columns(3)
