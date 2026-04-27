@@ -125,6 +125,35 @@ with col3:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+st.markdown("---") # 구분선 추가
+
+# --- [5.1 자산 배분 현황 (파이 차트)] ---
+st.subheader("📊 Portfolio Allocation")
+col_chart, col_info = st.columns([2, 1]) # 차트를 크게, 설명을 작게
+
+with col_chart:
+    # 파이 차트용 데이터 준비 (예시: 설정된 심볼별로 균등 배분 가정 또는 실제 보유량)
+    # 실제 보유량 데이터가 status.json에 있다면 그 데이터를 사용하면 됩니다.
+    allocation_data = []
+    for sym in config.keys():
+        # 여기서는 간단히 전략에 포함된 코인들 이름을 가져옵니다.
+        allocation_data.append({"Symbol": sym, "Value": 1}) # 예시 비중
+    
+    if allocation_data:
+        df_pie = pd.DataFrame(allocation_data)
+        fig_pie = px.pie(df_pie, values='Value', names='Symbol', 
+                         hole=0.4, # 도넛 모양으로 만들어 더 세련되게 표시
+                         color_discrete_sequence=px.colors.sequential.Greens_r)
+        fig_pie.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=300)
+        st.plotly_chart(fig_pie, use_container_width=True)
+    else:
+        st.info("설정된 전략이 없어 차트를 표시할 수 없습니다.")
+
+with col_info:
+    st.write("**포트폴리오 요약**")
+    st.caption("현재 전략이 적용된 심볼들의 배분 상태입니다. 각 코인별로 동일한 가중치의 리스크 파라미터가 적용되어 있습니다.")
+    # 추가적인 통계치나 안내 문구를 여기에 넣을 수 있습니다.
+
 # --- [6. 상세 데이터 분석 탭] ---
 tab1, tab2, tab3 = st.tabs(["📊 Trade Analysis", "⚙️ Strategy Config", "📰 Market News"])
 
