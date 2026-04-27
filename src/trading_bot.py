@@ -19,74 +19,81 @@ def save_data(filename, data, is_json=True):
         with open(path, 'w') as f: json.dump(data, f)
     else: # CSV (Trade Log)
         df = pd.DataFrame([data])
+        # [보완] 인코딩 utf-8-sig로 한글 깨짐 방지
         df.to_csv(path, mode='a', header=not os.path.exists(path), index=False, encoding='utf-8-sig')
 
 def monitor_symbol(symbol, config):
     global coin_states
-    ohlcv = exchange.fetch_ohlcv(symbol, timeframe='15m', limit=100)
-    df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-    
-    # 지표 계산
-    df['ema9'] = ta.ema(df['close'], length=9)
-    df['ema9_1h'] = ta.ema(df['close'], length=36)
-    df['rsi'] = ta.rsi(df['close'], length=14)
-    
-    curr = df.iloc[-1]
-    price = curr['close']
-    coin_states[symbol]['current_price'] = price # 실시간 가격 업데이트
-    
-    setting = config.get(symbol, {"vol": 3.0, "ts": 0.01, "profit": 0.01})
-    state = coin_states[symbol]
-    avg_vol = df['volume'].iloc[-6:-1].mean()
-    is_vol_spike = curr['volume'] > (avg_vol * setting['vol'])
+    try:
+        ohlcv = exchange.fetch_ohlcv(symbol, timeframe='15m', limit=100)
+        df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        
+        # 지표 계산
+        df['ema9'] = ta.ema(df['close'], length=9)
+        df['ema9_1h'] = ta.ema(df['close'], length=36)
+        df['rsi'] = ta.rsi(df['close'], length=14)
+        
+        curr = df.iloc[-1]
+        price = curr['close']
+        coin_states[symbol]['current_price'] = price # 실시간 가격 업데이트
+        
+        setting = config.get(symbol, {"vol": 3.0, "ts": 0.01, "profit": 0.01})
+        state = coin_states[symbol]
+        avg_vol = df['volume'].iloc[-6:-1].mean()
+        is_vol_spike = curr['volume'] > (avg_vol * setting['vol'])
 
-    if not state['in_position']:
-        if (price > curr['ema9_1h']) and (curr['rsi'] < 70) and is_vol_spike and (price > df.iloc[-2]['close']):
-            state.update({"in_position": True, "entry_price": price, "highest_price": price})
-            save_data('trade_log.csv', {"timestamp": datetime.now(), "symbol": symbol, "type": "BUY", "price": price, "profit_rate": 0, "reason": "거래량 돌파"}, False)
-            send_discord_notification(f"🚀 **[매수]** {symbol} | 가격: {price} | 전략: {setting['vol']}배 돌파")
-    else:
-        state['highest_price'] = max(state['highest_price'], price)
-        profit = (price - state['entry_price']) / state['entry_price']
-        if price < (state['highest_price'] * (1 - setting['ts'])) or (price < curr['ema9'] and profit > setting['profit']):
-            reason = "TS" if price < (state['highest_price'] * (1 - setting['ts'])) else "EMA"
-            save_data('trade_log.csv', {"timestamp": datetime.now(), "symbol": symbol, "type": "SELL", "price": price, "profit_rate": round(profit*100, 2), "reason": reason}, False)
-            state.update({"in_position": False, "entry_price": 0})
-            send_discord_notification(f"💰 **[매도]** {symbol} | 수익: {profit*100:.2f}% | 사유: {reason}")
-    
-    save_data('status.json', coin_states)
+        # [수정] 현재 시간 문자열화 (CSV 호환성)
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        if not state['in_position']:
+            if (price > curr['ema9_1h']) and (curr['rsi'] < 70) and is_vol_spike and (price > df.iloc[-2]['close']):
+                state.update({"in_position": True, "entry_price": price, "highest_price": price})
+                save_data('trade_log.csv', {"timestamp": now_str, "symbol": symbol, "type": "BUY", "price": price, "profit_rate": 0, "reason": "거래량 돌파"}, False)
+                send_discord_notification(f"🚀 **[매수 완료]** {symbol}\n💰 가격: {price} USDT\n📈 전략: {setting['vol']}배 돌파")
+        else:
+            state['highest_price'] = max(state['highest_price'], price)
+            profit = (price - state['entry_price']) / state['entry_price']
+            
+            # 매도 조건 (TS 혹은 EMA 이탈)
+            is_ts = price < (state['highest_price'] * (1 - setting['ts']))
+            is_ema = price < curr['ema9'] and profit > setting['profit']
+
+            if is_ts or is_ema:
+                reason = "TS" if is_ts else "EMA"
+                save_data('trade_log.csv', {"timestamp": now_str, "symbol": symbol, "type": "SELL", "price": price, "profit_rate": round(profit*100, 2), "reason": reason}, False)
+                state.update({"in_position": False, "entry_price": 0})
+                send_discord_notification(f"💰 **[매도 완료]** {symbol}\n📊 수익률: {profit*100:.2f}%\n📝 사유: {reason}")
+        
+        save_data('status.json', coin_states)
+    except Exception as e:
+        print(f"\n[Error in {symbol}]: {e}")
 
 def load_config():
-    """전략 설정 파일(bot_config.json) 로드"""
     try:
-        with open('bot_config.json', 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        # 파일이 없으면 기본값 반환 (에러 방지)
-        print("⚠️ bot_config.json 파일을 찾을 수 없어 기본값을 사용합니다.")
-        return {}
-    except Exception as e:
-        print(f"❌ 설정 파일 로드 중 에러: {e}")
-        return {}
+        with open('bot_config.json', 'r') as f: return json.load(f)
+    except: return {}
 
 if __name__ == "__main__":
-    if not os.path.exists('data/metadata.json'): save_data('metadata.json', {"start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+    # 시작 시 메타데이터 및 로그 파일 초기화 체크
+    os.makedirs('data', exist_ok=True)
+    if not os.path.exists('data/metadata.json'): 
+        save_data('metadata.json', {"start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+    
+    print(f"🚀 [Mangnani_Jipsajang] 퀀트 시스템 가동...")
+    
     while True:
         try:
             config = load_config()
-            # 현재 시간을 가져와서 로그에 사용
             current_time = datetime.now().strftime('%H:%M:%S')
             
             for i, sym in enumerate(symbols):
-                # [진행도/현재시간] 코인명 분석 중... (한 줄에서 계속 바뀜)
                 print(f"[{i+1}/{len(symbols)}] {current_time} | 🔍 {sym} 분석 중...          ", end='\r')
                 monitor_symbol(sym, config)
-                time.sleep(1)
+                time.sleep(1.5) # API 호출 안정성을 위해 조금 더 여유를 줌
             
-            # 한 바퀴 다 돌면 깔끔하게 완료 표시 후 대기
-            print(f"\n✅ {current_time} 스캔 완료! (30초 대기 중...) " + "-"*20)
+            print(f"\n✅ {current_time} 스캔 완료! (30초 대기) " + "-"*20)
             time.sleep(30)
             
         except Exception as e:
-            print(f"\n❌ [{datetime.now().strftime('%H:%M:%S')}] 루프 에러 발생: {e}")
+            print(f"\n❌ 루프 에러: {e}")
             time.sleep(10)

@@ -104,7 +104,12 @@ with tab2:
     for sym, cfg in config.items():
         if isinstance(cfg, dict):
             st.write(f"**{sym}**")
-            st.code(f"돌파: {cfg['vol']}배 / TS: {cfg['ts']*100}% / 익절기준: {cfg['profit']*100}%")
+            # :.2f 또는 :.1f를 사용해서 소수점 자릿수를 고정합니다.
+            vol = cfg['vol']
+            ts_percent = cfg['ts'] * 100
+            profit_percent = cfg['profit'] * 100
+            
+            st.code(f"돌파: {vol:.1f}배 / TS: {ts_percent:.2f}% / 익절기준: {profit_percent:.1f}%")
 
 with tab3:
     st.subheader("실시간 마켓 뉴스")
