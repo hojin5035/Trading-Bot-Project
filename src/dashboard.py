@@ -90,4 +90,22 @@ st.markdown("<br>", unsafe_allow_html=True) # 지표와 탭 사이 간격 추가
 
 # --- [3. 탭 구성 및 나머지 내용] ---
 tab1, tab2, tab3 = st.tabs(["📊 매매 분석", "⚙️ 전략 설정", "📰 마켓 뉴스"])
-# ... (이후 탭 내부 코드는 동일)
+
+with tab1:
+    if not trade_log.empty:
+        fig_bar = px.bar(trade_log[trade_log['type']=='SELL'], x='timestamp', y='profit_rate', color='profit_rate', 
+                         hover_data=['symbol', 'reason'], color_continuous_scale='RdYlGn')
+        st.plotly_chart(fig_bar, use_container_width=True)
+        st.dataframe(trade_log.sort_values('timestamp', ascending=False), use_container_width=True)
+    else: st.info("매매 기록을 기다리는 중입니다...")
+
+with tab2:
+    st.subheader("현재 적용 중인 전략 파라미터")
+    for sym, cfg in config.items():
+        if isinstance(cfg, dict):
+            st.write(f"**{sym}**")
+            st.code(f"돌파: {cfg['vol']}배 / TS: {cfg['ts']*100}% / 익절기준: {cfg['profit']*100}%")
+
+with tab3:
+    st.subheader("실시간 마켓 뉴스")
+    st.write("준비 중인 기능입니다.")
