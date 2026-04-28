@@ -96,37 +96,49 @@ with st.sidebar:
     st.divider()
     st.subheader("📊 Portfolio Weight")
     
-    # 1. 데이터 준비 (백분율 계산)
-    active_symbols = [s.split('/')[0] for s in config.keys()]
-    if active_symbols:
-        # 현재는 균등 배분(1/N) 가정, 나중에 실제 잔고로 대체 가능
-        df_bar = pd.DataFrame([{"Symbol": s, "Weight": 100/len(active_symbols)} for s in active_symbols])
-        
-        # 2. 수평 누적 막대 그래프 생성 (토스 스타일)
-        fig_bar = px.bar(df_bar, x='Weight', y=[ "" ]*len(df_bar), # y축 라벨 제거
-                         color='Symbol', orientation='h',
-                         # 구분이 확실한 컬러셋 (Set3, Pastel 등)
-                         color_discrete_sequence=px.colors.qualitative.Pastel,
-                         text='Symbol') # 막대 안에 이름 표시
-
-        fig_bar.update_layout(
-            barmode='stack',
-            height=80, # 높이를 확 줄여서 한 줄로 만듦
-            margin=dict(t=0, b=0, l=0, r=0),
-            showlegend=False, # 막대 안에 글자가 있으니 범례는 생략 가능
-            xaxis=dict(visible=False), # 축 제거로 깔끔하게
-            yaxis=dict(visible=False),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        
-        # 막대 안에 백분율 표시 설정
-        fig_bar.update_traces(texttemplate='%{text} %{x:.0f}%', textposition='inside')
-        
-        st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+    # 1. 데이터 로직: 포지션 여부에 따른 비중 계산
+    # 보유 중인(in_position=True) 종목들만 필터링
+    held_symbols = [sym for sym, stt in status.items() if stt.get('in_position', False)]
+    
+    allocation_data = []
+    if not held_symbols:
+        # 매수한 종목이 없으면 'Cash(현금)' 100%
+        allocation_data.append({"Asset": "Portfolio", "Type": "Cash", "Weight": 100})
+        colors = ["#30363d"] # 현금은 차분한 회색 계열
     else:
-        st.caption("설정된 전략이 없습니다.")
+        # 매수한 종목이 있으면 해당 종목들 비중 표시 (현재는 균등 배분 가정)
+        for sym in held_symbols:
+            allocation_data.append({"Asset": "Portfolio", "Type": sym.split('/')[0], "Weight": 100/len(held_symbols)})
+        colors = px.colors.qualitative.Pastel # 종목별 화사한 색상
+    
+    df_bar = pd.DataFrame(allocation_data)
+    
+    # 2. 아주 얇은 수평 막대 그래프 생성
+    fig_bar = px.bar(df_bar, x='Weight', y='Asset', color='Type', orientation='h',
+                     color_discrete_sequence=colors,
+                     text='Type')
 
+    fig_bar.update_layout(
+        barmode='stack',
+        height=50,             # 높이를 50으로 줄여 아주 얇게 만듦
+        margin=dict(t=0, b=0, l=0, r=0),
+        showlegend=False,
+        xaxis=dict(visible=False, range=[0, 100]), # 축 제거 및 범위 고정
+        yaxis=dict(visible=False),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+    )
+    
+    # 막대 안에 텍스트 표시 설정 (비중이 클 때만 텍스트 노출)
+    fig_bar.update_traces(
+        texttemplate='%{text} %{x:.0f}%', 
+        textposition='inside',
+        insidetextanchor='middle',
+        marker=dict(line=dict(width=0)) # 테두리 제거로 더 깔끔하게
+    )
+    
+    st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+    
 # --- [4. 메인 화면: 신호등 인디케이터] ---
 st.markdown(f"""
     <div class="status-card">
