@@ -4,6 +4,18 @@ import json
 import os
 from datetime import datetime
 import plotly.express as px
+import streamlit as st
+from datetime import datetime
+import pytz # 타임존 제어 라이브러리
+
+# 한국 타임존 설정
+KST = pytz.timezone('Asia/Seoul')
+
+# ... (기존 코드)
+
+def get_current_time():
+    # 서버의 현재 시간이 아닌, 한국의 현재 시간을 가져옵니다.
+    return datetime.now(KST)
 
 # 1. 페이지 설정 (레이아웃 및 타이틀)
 st.set_page_config(page_title="Quant Strategy Terminal", layout="wide")
@@ -138,7 +150,7 @@ with st.sidebar:
     )
     
     st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
-    
+
 # --- [4. 메인 화면: 신호등 인디케이터] ---
 st.markdown(f"""
     <div class="status-card">
@@ -153,9 +165,19 @@ st.markdown(f"""
 col1, col2, col3 = st.columns(3)
 
 with col1:
+    # --- [가동 시간 계산 부분 수정] ---
     if meta and 'start_time' in meta:
-        start_dt = datetime.strptime(meta['start_time'], '%Y-%m-%d %H:%M:%S')
-        diff = datetime.now() - start_dt
+        # 1. 저장된 시작 시간 문자열을 읽어옴
+        start_dt_naive = datetime.strptime(meta['start_time'], '%Y-%m-%d %H:%M:%S')
+    
+        # 2. 이 시간을 한국 시간(KST)으로 인식하게 만듦
+        start_dt = KST.localize(start_dt_naive)
+    
+        # 3. 현재의 한국 시간과 비교
+        now_dt = datetime.now(KST)
+        diff = now_dt - start_dt
+    
+        # (이후 계산 로직은 동일)
         total_sec = int(diff.total_seconds())
         days, hours, minutes = total_sec // 86400, (total_sec % 86400) // 3600, (total_sec % 3600) // 60
         time_str = f"{days}일 {hours}시간" if days > 0 else f"{hours}시간 {minutes}분"
