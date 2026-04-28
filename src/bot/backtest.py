@@ -1,11 +1,22 @@
 import pandas as pd
 import pandas_ta as ta
 import json
+import os
+
+# 1. 파일의 절대 경로를 기준으로 루트(최상위) 폴더를 고정합니다.
+# 현재 파일 위치에서 위로 두 번(src/ 하위라면 세 번) 올라가 루트를 잡습니다.
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) 
+# 만약 파일이 src/ 안에 있다면 한 번 더 감싸서 위로 보냅니다.
+# ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 2. 이제 모든 파일 로드는 이 ROOT_DIR을 기준으로 합니다.
+CONFIG_PATH = os.path.join(ROOT_DIR, "bot_config.json")
+SECRETS_PATH = os.path.join(ROOT_DIR, "secrets.json")
 
 def load_config():
     """최적화된 파라미터 로드"""
     try:
-        with open('bot_config.json', 'r') as f:
+        with open(CONFIG_PATH, 'r') as f:
             return json.load(f)
     except FileNotFoundError:
         print("❌ 설정 파일이 없습니다. optimizer.py를 먼저 실행하세요.")

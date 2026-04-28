@@ -7,6 +7,11 @@ import os
 from datetime import datetime
 from utils import send_discord_notification
 
+# 파일 절대 경로 고정
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(ROOT_DIR, "bot_config.json")
+SECRETS_PATH = os.path.join(ROOT_DIR, "secrets.json")
+
 # --- [설정 및 상태] ---
 symbols = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT']
 exchange = ccxt.binance({'enableRateLimit': True})
@@ -70,7 +75,7 @@ def monitor_symbol(symbol, config):
 
 def load_config():
     try:
-        with open('bot_config.json', 'r') as f: return json.load(f)
+        with open(CONFIG_PATH, 'r') as f: return json.load(f)
     except: return {}
 
 if __name__ == "__main__":
