@@ -47,7 +47,7 @@ def monitor_symbol(symbol, config):
 
         if not state['in_position']:
             if (price > curr['ema9_1h']) and (curr['rsi'] < 70) and is_vol_spike and (price > df.iloc[-2]['close']):
-                state.update({"in_position": True, "entry_price": price, "highest_price": price})
+                state.update({"in_posion": True, "entry_price": price, "highest_price": price})
                 save_data('trade_log.csv', {"timestamp": now_str, "symbol": symbol, "type": "BUY", "price": price, "profit_rate": 0, "reason": "거래량 돌파"}, False)
                 send_discord_notification(f"🚀 **[매수 완료]** {symbol}\n💰 가격: {price} USDT\n📈 전략: {setting['vol']}배 돌파")
         else:
