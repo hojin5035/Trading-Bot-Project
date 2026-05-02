@@ -1,1 +1,26 @@
-{"BTC/USDT": {"in_position": false, "entry_price": 0, "highest_price": 77885.29, "current_price": 77191.26}, "ETH/USDT": {"in_position": false, "entry_price": 0, "highest_price": 0, "current_price": 2313.33}, "SOL/USDT": {"in_position": false, "entry_price": 0, "highest_price": 85.53, "current_price": 84.14}, "XRP/USDT": {"in_position": false, "entry_price": 0, "highest_price": 1.4063, "current_price": 1.3823}}
+{
+    "BTC/USDT": {
+        "in_position": false,
+        "entry_price": 0,
+        "highest_price": 78850.73,
+        "current_price": 78254.74
+    },
+    "ETH/USDT": {
+        "in_position": false,
+        "entry_price": 0,
+        "highest_price": 0,
+        "current_price": 2304.15
+    },
+    "SOL/USDT": {
+        "in_position": true,
+        "entry_price": 84.05,
+        "highest_price": 84.15,
+        "current_price": 83.9
+    },
+    "XRP/USDT": {
+        "in_position": true,
+        "entry_price": 1.3868,
+        "highest_price": 1.3876,
+        "current_price": 1.3871
+    }
+}
