@@ -29,7 +29,8 @@ except ModuleNotFoundError:
 CONFIG_PATH = os.path.join(ROOT_DIR, "bot_config.json")
 SECRETS_PATH = os.path.join(ROOT_DIR, "secrets.json")
 # 데이터 저장 폴더도 최상위의 data 폴더로 고정
-DATA_DIR = os.path.join(ROOT_DIR, "data")
+DATA_DIR = r"C:\Users\hojin\IdeaProjects\trading-backend\data"
+
 
 # --- [설정 및 상태] ---
 symbols = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT']
