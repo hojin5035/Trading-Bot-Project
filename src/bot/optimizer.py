@@ -3,7 +3,13 @@ import pandas_ta as ta
 import json
 import os
 import sys
-import ccxt # 혹시 설치 안 되어 있다면: pip install ccxt
+import ccxt
+
+# --- [경로 설정 추가] ---
+current_file_path = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(current_file_path, '..', '..'))
+DATA_DIR = os.path.join(ROOT_DIR, "data")
+CONFIG_PATH = os.path.join(ROOT_DIR, "bot_config.json")
 
 def fetch_historical_data(symbol, timeframe='15m', days=90):
     """
@@ -102,16 +108,14 @@ def draw_progress_bar(current, total, bar_length=30):
     sys.stdout.flush()
 
 # 2. 데이터 수집 함수 (90일치)
+# [수정] 2. 데이터 수집 함수
 def get_90d_data(symbol):
     print(f"\n📥 {symbol} 데이터 수집 중...")
-    
     df = fetch_historical_data(symbol, '15m', 90)
     
-    # data 폴더가 없으면 생성
-    if not os.path.exists('data'):
-        os.makedirs('data')
-        
-    filename = f"data/{symbol.replace('/', '_')}_90d.csv"
+    os.makedirs(DATA_DIR, exist_ok=True)
+    # 최상위 data 폴더에 정확히 저장되도록 경로 지정
+    filename = os.path.join(DATA_DIR, f"{symbol.replace('/', '_')}_90d.csv")
     df.to_csv(filename, index=False)
     return df
 
@@ -163,15 +167,15 @@ for sym in symbols:
     final_config[sym] = best_params
     print(f"\n✅ {sym} 최적화 완료! (Best Score: {best_score:.2f})")
 
-# 4. JSON 파일 업데이트 (디스코드 정보 유지)
+# [수정] 4. JSON 파일 업데이트
 try:
-    with open('bot_config.json', 'r') as f:
+    with open(CONFIG_PATH, 'r') as f: # 상대경로 대신 절대경로(CONFIG_PATH) 사용
         config = json.load(f)
 except FileNotFoundError:
     config = {}
 
 config.update(final_config)
-with open('bot_config.json', 'w') as f:
+with open(CONFIG_PATH, 'w') as f:     # 여기도 CONFIG_PATH 사용
     json.dump(config, f, indent=4)
 
 print("\n✨ 모든 작업이 완료되었습니다! 'bot_config.json'이 최신화되었습니다.")

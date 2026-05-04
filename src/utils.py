@@ -10,7 +10,7 @@ def load_secrets():
     except FileNotFoundError:
         return {}
 
-def send_discord_notification(message):
+def send_discord(message):
     """디스코드 알림 전송"""
     secrets = load_secrets()
     url = secrets.get('discord_webhook_url')
