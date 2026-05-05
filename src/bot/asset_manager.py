@@ -1,41 +1,64 @@
 import collections
+import json
+import os
 
-# 각 코인별 최근 3거래일 승패 기록 (큐)
-trade_queues = {
-    'BTC/USDT': collections.deque(maxlen=3),
-    'ETH/USDT': collections.deque(maxlen=3),
-    'SOL/USDT': collections.deque(maxlen=3),
-    'XRP/USDT': collections.deque(maxlen=3)
-}
+# 경로 설정
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(BASE_DIR, "..", "..", "bot_config.json")
+
+# 승패 기록 큐
+trade_queues = {sym: collections.deque(maxlen=3) for sym in ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT']}
+
+def load_json_config():
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, 'r', encoding='utf-8') as f: return json.load(f)
+    return {}
+
+def save_json_config(config):
+    with open(CONFIG_PATH, 'w', encoding='utf-8') as f: json.dump(config, f, indent=4)
 
 def get_order_config(symbol, total_balance):
-    """최근 패배 횟수 기반 레버리지 조절 및 진입 제한"""
+    """수익은 나누고 손실은 격리하는 시드 배분 로직"""
+    config = load_json_config()
+    ind_bal = config.get("individual_balances", {s: 250.0 for s in trade_queues.keys()})
+    shared_pool = config.get("shared_profit_pool", 0.0)
+    
     q = trade_queues.get(symbol, collections.deque(maxlen=3))
     loss_count = list(q).count('L')
     
-    # 3단계 레버리지 규칙 적용
+    # 1. 레버리지 결정
     if loss_count <= 1: leverage = 2.0
     elif loss_count == 2: leverage = 1.5
     else: leverage = 1.0
     
-    seed = total_balance * 0.25 # 25% 균등 분배
+    # 2. 진입 가능 확인 (직전 'L' 시 Skip)
+    active_symbols = [s for s, que in trade_queues.items() if len(que) == 0 or que[-1] != 'L']
     
-    # 직전 거래 패배 시 진입 제외 (자산 보호)
-    if len(q) > 0 and q[-1] == 'L':
-        return 0, 0, "Skip(Last Failed)"
+    if symbol in active_symbols:
+        n_active = max(len(active_symbols), 1)
+        target_seed = ind_bal.get(symbol, 250.0) + (shared_pool / n_active)
+        status = "Active"
+    else:
+        leverage, target_seed, status = 0, 0, "Skip(Last Failed)"
         
-    return leverage, seed, "Active"
+    return leverage, target_seed, status
 
-def update_trade_result(symbol, profit_rate):
-    """수익률을 받아 승패 기록 및 큐 업데이트"""
-    if symbol in trade_queues:
-        result = 'W' if profit_rate > 0 else 'L'
-        trade_queues[symbol].append(result)
-        print(f"[{symbol}] 결과 기록: {result} | 현재 큐: {list(trade_queues[symbol])}")
+def update_trade_result(symbol, profit_rate, used_seed):
+    """결과에 따라 수익 풀 또는 개별 원금 업데이트"""
+    config = load_json_config()
+    ind_bal = config.get("individual_balances", {s: 250.0 for s in trade_queues.keys()})
+    shared_pool = config.get("shared_profit_pool", 0.0)
+    
+    profit_amount = used_seed * (profit_rate / 100)
+    trade_queues[symbol].append('W' if profit_rate > 0 else 'L')
+    
+    if profit_amount > 0: shared_pool += profit_amount # 수익 공유
+    else: ind_bal[symbol] += profit_amount # 손실 격리
+    
+    config.update({"individual_balances": ind_bal, "shared_profit_pool": shared_pool, "current_seed": sum(ind_bal.values()) + shared_pool})
+    save_json_config(config)
 
 def reset_all_queues():
-    """새로운 달 시작 시 모든 큐 초기화 (W로 채워 새 시작)"""
     for sym in trade_queues:
         trade_queues[sym].clear()
         for _ in range(3): trade_queues[sym].append('W')
-    print("📅 [AssetManager] 모든 종목의 큐가 초기화되었습니다.")

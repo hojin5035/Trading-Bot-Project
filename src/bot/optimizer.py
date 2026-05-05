@@ -169,13 +169,15 @@ for sym in symbols:
 
 # [수정] 4. JSON 파일 업데이트
 try:
-    with open(CONFIG_PATH, 'r') as f: # 상대경로 대신 절대경로(CONFIG_PATH) 사용
-        config = json.load(f)
-except FileNotFoundError:
-    config = {}
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, 'r', encoding='utf-8') as f: config = json.load(f)
+    else: config = {}
+except: config = {}
 
+# 전략 파라미터만 업데이트 (individual_balances 등은 유지됨)
 config.update(final_config)
-with open(CONFIG_PATH, 'w') as f:     # 여기도 CONFIG_PATH 사용
+
+with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
     json.dump(config, f, indent=4)
 
-print("\n✨ 모든 작업이 완료되었습니다! 'bot_config.json'이 최신화되었습니다.")
+print("\n✨ 작업 완료! 전략 파라미터가 최신화되었습니다. (자산 데이터는 유지됨)")
