@@ -114,7 +114,7 @@ def get_bot_status():
 
                 formatted_stats.append({
                     "name": coin_name,
-                    "status": "실행중",
+                    "status": "분석중",
                     "winRate": win_rates.get(coin_name, "0%"),
                     "lev": leverages.get(coin_name, "1x"),
                     "dist": f"{(ind_bal.get(coin_name, 0)/total_assets*100):.1f}%" if total_assets > 0 else "0%",

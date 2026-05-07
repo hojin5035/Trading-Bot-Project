@@ -255,7 +255,7 @@ function App() {
         <div style={{ flex: '0.4', padding: '12px', backgroundColor: '#282c34', borderRadius: '10px', display: 'flex', justifyContent: 'space-around', fontSize: '12px', color: '#aaa', alignItems: 'center' }}>
           <span>Github: <span style={{color: '#fff'}}>github.com/hojin5035</span></span>
           <span>Contact: <span style={{color: '#fff'}}>hojin5035@naver.com</span></span>
-          <span style={{ borderLeft: '1px solid #444', paddingLeft: '15px' }}>v1.1.1 - 2026</span>
+          <span style={{ borderLeft: '1px solid #444', paddingLeft: '15px' }}>v0.1.1 - 2026</span>
         </div>
       </div>
       {/* 하단 AI 섹션 */}
