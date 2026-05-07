@@ -1,5 +1,25 @@
-secrets.json
-*.key
-__pycache__/
+# === Trading Bot Runtime Data ===
+data/
+*.csv
 .env
 data/*.json
+
+# 개별 로그 (혹시 다른 폴더에 있어도 대비)
+trade_log.csv
+equity_log.csv
+
+# 상태/캐시
+*.log
+*.tmp
+
+# 민감 정보
+secrets.json
+state.json
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+build/

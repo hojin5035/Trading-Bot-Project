@@ -3,6 +3,37 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContai
 import './App.css';
 
 function App() {
+  const [aiComment, setAiComment] = useState("AI 분석 버튼을 눌러보세요.");
+  const [loading, setLoading] = useState(false);
+
+  const fetchAI = async (mode) => {
+    setLoading(true);
+    setAiComment("분석 중..."); // 로딩 중 표시
+    try {
+      // 💡 8000번 포트(FastAPI)가 떠있는지 확인하세요!
+      const response = await fetch(`http://localhost:8000/api/ai/${mode}`);
+      if (!response.ok) throw new Error("서버 응답 없음");
+      
+      const data = await response.json();
+      setAiComment(data.result);
+    } catch (error) {
+      console.error(error);
+      setAiComment("에러: 서버가 꺼져있거나 API 키를 확인하세요.");
+    }
+    setLoading(false);
+  };
+
+  const [equity, setEquity] = useState([]);
+  const fetchEquity = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/equity");
+      const data = await res.json();
+      setEquity(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error("equity 로딩 실패", e);
+    }
+  };
+
   const [trades, setTrades] = useState([]);
   const [botInfo, setBotInfo] = useState({
     botStatus: "연결 확인 중",
@@ -19,6 +50,7 @@ function App() {
       fetchTrades();
       fetchBotStatus();
       fetchPrices();
+      fetchEquity();
     };
 
     updateAllData();
@@ -107,7 +139,7 @@ function App() {
         <div style={{ flex: '0.6', backgroundColor: '#282c34', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
-              {[1, 2, 3].map(num => (
+              {[1, 2, 3, 4].map(num => (
                 <button key={num} onClick={() => setActiveTab(num)}
                   style={{
                     width: '35px', height: '35px', backgroundColor: activeTab === num ? '#61dafb' : '#1e1e24',
@@ -117,7 +149,7 @@ function App() {
               ))}
             </div>
             <span style={{ fontSize: '12px', color: '#aaa', fontWeight: 'bold' }}>
-              {activeTab === 1 ? "최근 매매 기록" : activeTab === 2 ? "수익률 추이" : "종목별 수익/손실 비교"}
+              {activeTab === 1 ? "최근 매매 기록" : activeTab === 2 ? "수익률 추이" : activeTab === 3 ? "종목별 수익/손실 비교" : "자산 곡선"}
             </span>
           </div>
 
@@ -149,7 +181,7 @@ function App() {
               </table>
             )}
 
-            {(activeTab === 2 || activeTab === 3) && (
+            {(activeTab === 2 || activeTab === 3 || activeTab === 4) && (
               <ResponsiveContainer width="100%" height="100%">
                 {activeTab === 2 ? (
                   <LineChart data={trades}>
@@ -160,7 +192,7 @@ function App() {
                     <ReferenceLine y={0} stroke="#ff4d4d" strokeDasharray="3 3" />
                     <Line type="linear" dataKey="profit_rate" name="수익률" stroke="#61dafb" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} isAnimationActive={false} />
                   </LineChart>
-                ) : (
+                ) : activeTab === 3 ? (
                   <BarChart data={botInfo?.coinStats || []}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#444" vertical={false} />
                     <XAxis dataKey="name" fontSize={12} stroke="#888" />
@@ -170,6 +202,17 @@ function App() {
                     <Bar dataKey="totalProfit" fill="#ff4d4d" name="누적 수익" radius={[2, 2, 0, 0]} barSize={20} isAnimationActive={false} />
                     <Bar dataKey="totalLoss" fill="#4d79ff" name="누적 손실" radius={[2, 2, 0, 0]} barSize={20} isAnimationActive={false} />
                   </BarChart>
+                ) : (
+                  <LineChart data={equity.slice(-100)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#444" vertical={false} />
+                    <XAxis dataKey="timestamp" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(11, 16)} />
+                    <YAxis yAxisId="left" domain={[(dataMin) => dataMin - 50, (dataMax) => dataMax + 50]} stroke="#f1c40f" />
+                    <YAxis yAxisId="right" orientation="right" domain={[-20, 0]} stroke="#ff4d4d" />
+                    <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
+                    <Line yAxisId="left" type="monotone" dataKey="equity" name="자산" stroke="#f1c40f" strokeWidth={2} dot={false} isAnimationActive={false} />
+                    {/* MDD */}
+                    <Line yAxisId="right" type="monotone" dataKey="mdd" stroke="#ff4d4d" strokeWidth={2} dot={false} />
+                  </LineChart>
                 )}
               </ResponsiveContainer>
             )}
@@ -213,6 +256,17 @@ function App() {
           <span>Github: <span style={{color: '#fff'}}>github.com/hojin5035</span></span>
           <span>Contact: <span style={{color: '#fff'}}>hojin5035@naver.com</span></span>
           <span style={{ borderLeft: '1px solid #444', paddingLeft: '15px' }}>v1.1.1 - 2026</span>
+        </div>
+      </div>
+      {/* 하단 AI 섹션 */}
+      {/* 2. 하단 슬림 AI 바 (버튼과 글이 한 줄) */}
+      <div className="ai-insight-bar">
+        <div className="ai-button-group">
+          <button onClick={() => fetchAI('strategy')} disabled={loading}>전략 분석</button>
+          <button onClick={() => fetchAI('market')} disabled={loading}>시장 분석</button>
+        </div>
+        <div className="ai-content-area">
+          {aiComment}
         </div>
       </div>
     </div>

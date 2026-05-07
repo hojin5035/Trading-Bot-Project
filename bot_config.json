@@ -8,23 +8,24 @@
     "shared_profit_pool": 0.0,
     "current_seed": 1000.0,
     "BTC/USDT": {
-        "vol": 3.6,
-        "ts": 0.007,
-        "profit": 0.02
-    },
-    "ETH/USDT": {
-        "vol": 3.6,
+        "vol": 3.0,
         "ts": 0.007,
         "profit": 0.01
     },
-    "SOL/USDT": {
+    "ETH/USDT": {
         "vol": 3.5,
+        "ts": 0.01,
+        "profit": 0.01
+    },
+    "SOL/USDT": {
+        "vol": 3.8,
         "ts": 0.015,
         "profit": 0.01
     },
     "XRP/USDT": {
-        "vol": 3.6,
-        "ts": 0.015,
-        "profit": 0.015
-    }
+        "vol": 3.8,
+        "ts": 0.007,
+        "profit": 0.01
+    },
+    "peak_equity": 1000.0
 }
