@@ -61,6 +61,11 @@ def load_state():
     return state
 
 def save_state(state):
+    def convert(o):
+        if hasattr(o, 'item'):
+            return o.item()
+        raise TypeError
+    
     with open(STATE_PATH, 'w', encoding='utf-8') as f:
         json.dump(state, f, indent=4)
 
@@ -70,8 +75,25 @@ live_monitor = {}
 # --- 로그 ---
 def save_log(data):
     path = os.path.join(DATA_DIR, "trade_log.csv")
-    df = pd.DataFrame([data])
-    df.to_csv(path, mode='a', header=not os.path.exists(path), index=False, encoding='utf-8-sig')
+
+    row = {
+        "timestamp": data.get("timestamp", ""),
+        "symbol": data.get("symbol", ""),
+        "type": data.get("type", ""),
+        "price": data.get("price", 0),
+        "profit_rate": data.get("profit_rate", 0),
+        "reason": data.get("reason", "")
+    }
+
+    df = pd.DataFrame([row])
+
+    df.to_csv(
+        path,
+        mode='a',
+        header=not os.path.exists(path),
+        index=False,
+        encoding='utf-8-sig'
+    )
 
 # --- 추가 ---
 def save_equity():
@@ -238,15 +260,15 @@ def monitor_symbol(symbol, config):
 
                 if lev > 0 and seed > 5:
 
-                    entry_price = price * 1.0005
-                    amount = (seed * lev) / entry_price
+                    entry_price = float(price * 1.0005)
+                    amount = float((seed * lev) / entry_price)
 
                     state.update({
                         "in_position": True,
-                        "entry_price": entry_price,
-                        "highest_price": entry_price,
-                        "amount": amount,
-                        "used_seed": seed
+                        "entry_price": float(entry_price),
+                        "highest_price": float(entry_price),
+                        "amount": float(amount),
+                        "used_seed": float(seed)
                     })
 
                     save_log({
@@ -254,7 +276,8 @@ def monitor_symbol(symbol, config):
                         "symbol": symbol,
                         "type": "BUY",
                         "price": entry_price,
-                        "reason": "volume_spike"
+                        "profit_rate": 0,
+                        "reason": "거래량 돌파"
                     })
 
                     send_discord(
@@ -286,7 +309,7 @@ def monitor_symbol(symbol, config):
 
             if is_ts or is_ema:
                 exit_price = price * 0.9995
-                profit_percent = round(profit_rate * 100, 2)
+                profit_percent = float(round(profit_rate * 100, 2))
 
                 update_trade_result(symbol, profit_percent, state['used_seed'])
 
@@ -296,8 +319,8 @@ def monitor_symbol(symbol, config):
                     "timestamp": now,
                     "symbol": symbol,
                     "type": "SELL",
-                    "price": exit_price,
-                    "profit_rate": profit_percent,
+                    "price": float(exit_price),
+                    "profit_rate": float(profit_percent),
                     "reason": "TS" if is_ts else "EMA"
                 })
 
