@@ -206,8 +206,8 @@ function App() {
                   <LineChart data={equity.slice(-100)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#444" vertical={false} />
                     <XAxis dataKey="timestamp" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(11, 16)} />
-                    <YAxis yAxisId="left" domain={[(dataMin) => dataMin - 50, (dataMax) => dataMax + 50]} stroke="#f1c40f" />
-                    <YAxis yAxisId="right" orientation="right" domain={[-20, 0]} stroke="#ff4d4d" />
+                    <YAxis yAxisId="left" tick={{ fontSize: 10 }} domain={['auto', 'auto']} stroke="#f1c40f" />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} domain={[-20, 0]} stroke="#ff4d4d" />
                     <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
                     <Line yAxisId="left" type="monotone" dataKey="equity" name="자산" stroke="#f1c40f" strokeWidth={2} dot={false} isAnimationActive={false} />
                     {/* MDD */}

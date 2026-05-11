@@ -313,8 +313,6 @@ def monitor_symbol(symbol, config):
 
                 update_trade_result(symbol, profit_percent, state['used_seed'])
 
-                adjust_params(symbol)
-
                 save_log({
                     "timestamp": now,
                     "symbol": symbol,
@@ -330,6 +328,8 @@ def monitor_symbol(symbol, config):
                     f"수익률: {profit_percent}%\n"
                     f"사유: {'TS' if is_ts else 'EMA'}"
                 )
+                
+                adjust_params(symbol)
 
                 print(f"💰 SELL {symbol} {profit_percent}%")
 

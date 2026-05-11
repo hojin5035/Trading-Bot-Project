@@ -70,3 +70,16 @@ def reset_all_queues():
         trade_queues[s].clear()
         for _ in range(3):
             trade_queues[s].append('W')
+
+def get_current_leverage(symbol):
+
+    queue = trade_queues.get(symbol, [])
+
+    losses = queue.count("L")
+
+    if losses <= 1:
+        return 2.0
+    elif losses == 2:
+        return 1.5
+    else:
+        return 1.0

@@ -2,11 +2,11 @@
     "individual_balances": {
         "BTC/USDT": 250.0,
         "ETH/USDT": 250.0,
-        "SOL/USDT": 250.0,
+        "SOL/USDT": 248.50656204459375,
         "XRP/USDT": 250.0
     },
-    "shared_profit_pool": 0.0,
-    "current_seed": 1000.0,
+    "shared_profit_pool": 19.73189564859375,
+    "current_seed": 1018.2384576931875,
     "BTC/USDT": {
         "vol": 3.0,
         "ts": 0.007,

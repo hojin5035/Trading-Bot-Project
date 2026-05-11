@@ -1,9 +1,17 @@
 import json
 import os
+import sys
 import math
 import numpy as np
 import pandas as pd
 
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+SRC_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+
+sys.path.append(SRC_DIR)
+
+from bot.asset_manager import get_current_leverage
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
@@ -24,6 +32,7 @@ LOG_PATH = r"C:\Users\hojin\IdeaProjects\trading-backend\data\trade_log.csv"
 CONFIG_PATH = r"C:\Users\hojin\OneDrive\Desktop\TradingBot\bot_config.json"
 SECRETS_PATH = r"C:\Users\hojin\OneDrive\Desktop\TradingBot\secrets.json"
 DATA_DIR = r"C:\Users\hojin\IdeaProjects\trading-backend\data"
+STATE_PATH = r"C:\Users\hojin\OneDrive\Desktop\TradingBot\state.json"
 
 # --- 안전 float 변환 ---
 def safe_float(v):
@@ -76,7 +85,7 @@ def get_analyzed_data():
         df = df.sort_values(by="timestamp")
 
         win_rates = {}
-        leverages = {}
+
         cumulative_stats = {}
 
         for symbol, group in df.groupby('symbol'):
@@ -93,17 +102,6 @@ def get_analyzed_data():
 
             win_rates[symbol] = f"{safe_float(win_rate)}%"
 
-            recent = sell_group.tail(3)
-
-            losses = len([
-                p for p in recent['profit_rate']
-                if safe_float(p) <= 0
-            ])
-
-            base_lev = 2.0 if losses <= 1 else (1.5 if losses == 2 else 1.0)
-
-            leverages[symbol] = f"{base_lev}x"
-
             cumulative_stats[symbol] = {
                 "totalProfit": safe_float(
                     sell_group[sell_group['profit_rate'] > 0]['profit_rate'].sum()
@@ -115,7 +113,7 @@ def get_analyzed_data():
                 )
             }
 
-        return win_rates, leverages, cumulative_stats
+        return win_rates, cumulative_stats
 
     except Exception as e:
         print(f"❌ 분석 오류: {e}")
@@ -126,10 +124,13 @@ def get_analyzed_data():
 def get_bot_status():
 
     try:
-        win_rates, leverages, cum_stats = get_analyzed_data()
+        win_rates, cum_stats = get_analyzed_data()
 
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
             raw_data = json.load(f)
+
+        with open(STATE_PATH, "r", encoding="utf-8") as f:
+            state_data = json.load(f)
 
         ind_bal = raw_data.get("individual_balances", {})
         shared_pool = safe_float(raw_data.get("shared_profit_pool", 0.0))
@@ -162,10 +163,14 @@ def get_bot_status():
                 formatted_stats.append({
 
                     "name": coin_name,
-                    "status": "분석중",
+                    "status": (
+                        "보유중"
+                        if state_data.get(coin_name, {}).get("in_position", False)
+                        else "분석중"
+                    ),
 
                     "winRate": win_rates.get(coin_name, "0%"),
-                    "lev": leverages.get(coin_name, "1x"),
+                    "lev": f"{get_current_leverage(coin_name)}x",
 
                     "dist": f"{safe_float(dist)}%",
 
@@ -276,7 +281,12 @@ def get_ai_analysis(mode: str):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print("❌ Gemini 오류:", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 # --- 실행 ---
 if __name__ == "__main__":
