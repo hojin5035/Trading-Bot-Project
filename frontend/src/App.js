@@ -121,7 +121,7 @@ function App() {
   };
 
   return (
-    <div style={{ backgroundColor: '#1e1e24', color: '#fff', minHeight: '100vh', padding: '20px', fontFamily: 'sans-serif', overflow: 'hidden' }}>
+    <div style={{ backgroundColor: '#1e1e24', color: '#fff', minHeight: '100vh', padding: '20px', fontFamily: 'sans-serif', boxSizing: 'border-box' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #444', paddingBottom: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -135,8 +135,8 @@ function App() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '20px', height: '480px' }}>
-        <div style={{ flex: '0.6', backgroundColor: '#282c34', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', gap: '20px', minheight: '480px', alignItems: 'stretch', flexWrap: window.innerWidth < 1200 ? 'wrap' : 'nowrap' }}>
+        <div style={{ flex: '1.6', backgroundColor: '#282c34', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
               {[1, 2, 3, 4].map(num => (
@@ -153,7 +153,7 @@ function App() {
             </span>
           </div>
 
-          <div style={{ flex: 1, overflowY: activeTab === 1 ? 'auto' : 'hidden' }}>
+          <div style={{ flex: 1, minHeight: '380px', overflowY: activeTab === 1 ? 'auto' : 'hidden' }}>
             {activeTab === 1 && (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead style={{ position: 'sticky', top: 0, backgroundColor: '#333', zIndex: 1 }}>
@@ -206,8 +206,8 @@ function App() {
                   <LineChart data={equity.slice(-100)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#444" vertical={false} />
                     <XAxis dataKey="timestamp" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(11, 16)} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 10 }} domain={['auto', 'auto']} stroke="#f1c40f" />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} domain={[-20, 0]} stroke="#ff4d4d" />
+                    <YAxis yAxisId="left"z domain={[(dataMin) => dataMin - 50, (dataMax) => dataMax + 50]} stroke="#f1c40f" />
+                    <YAxis yAxisId="right" orientation="right" domain={[-20, 0]} stroke="#ff4d4d" />
                     <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
                     <Line yAxisId="left" type="monotone" dataKey="equity" name="자산" stroke="#f1c40f" strokeWidth={2} dot={false} isAnimationActive={false} />
                     {/* MDD */}
@@ -219,7 +219,7 @@ function App() {
           </div>
         </div>
 
-        <div style={{ flex: '0.4', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ flex: 1, minWidth: '320px', display: 'grid', gridTemplateColumns: window.innerWidth < 1200 ? '1fr 1fr' : '1fr', gap: '10px' }}>
           {botInfo?.coinStats?.length > 0 ? botInfo.coinStats.map((coin, idx) => (
             <div key={idx} style={{ 
               flex: 1, backgroundColor: '#282c34', borderRadius: '12px', padding: '12px', 
@@ -245,7 +245,7 @@ function App() {
         </div>
       </div>
 
-      <div style={{ marginTop: '20px', display: 'flex', gap: '20px' }}>
+      <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
         <div style={{ flex: '0.6', padding: '12px', backgroundColor: '#282c34', borderRadius: '10px', display: 'flex', justifyContent: 'space-around', fontSize: '13px', fontWeight: 'bold' }}>
           <span>BTC <span style={{color:'#ff4d4d', marginLeft:'5px'}}>${prices?.BTC || '0'}</span></span>
           <span>ETH <span style={{color:'#4d79ff', marginLeft:'5px'}}>${prices?.ETH || '0'}</span></span>
